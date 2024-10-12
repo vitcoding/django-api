@@ -8,4 +8,5 @@ INSTALLED_APPS = [
     "movies.apps.MoviesConfig",
     "django_extensions",
     "debug_toolbar",
+    "corsheaders",
 ]

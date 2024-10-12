@@ -1,0 +1,2 @@
+docker run -p 8080:8080 --name swagger -v /home/vitcoder_ubuntu/projects/study_practicum/block_03_admin/django_api/_additional_info/openapi.yaml:/data/swagger.yaml -e SWAGGER_JSON=/data/swagger.yaml swaggerapi/swagger-ui
+

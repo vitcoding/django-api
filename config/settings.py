@@ -33,6 +33,10 @@ include(
     "components/middlewares.py",
 )
 
+CORS_ORIGIN_WHITELIST = [
+    "http://localhost:8080",
+]
+
 ROOT_URLCONF = "config.urls"
 
 # Шаблоны: config/components/templates.py
