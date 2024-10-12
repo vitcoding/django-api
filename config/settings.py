@@ -12,6 +12,15 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 
 DEBUG = os.environ.get("DEBUG", False) == "True"
 
+# Логирование: config/components/logging.py
+include(
+    "components/logging.py",
+)
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
+
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS").split(",")
 
 # Приложения: config/components/applications.py
