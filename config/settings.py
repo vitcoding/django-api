@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -13,9 +14,19 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 DEBUG = os.environ.get("DEBUG", False) == "True"
 
 # Логирование: config/components/logging.py
-include(
-    "components/logging.py",
+# include(
+#     "components/logging.py",
+# )
+format_log = (
+    "#%(levelname)-8s [%(asctime)s] - %(filename)s:"
+    "%(lineno)d - %(name)s - %(message)s"
 )
+logging.basicConfig(
+    level=logging.INFO,
+    format=format_log,
+)
+logger = logging.getLogger(__name__)
+
 
 INTERNAL_IPS = [
     "127.0.0.1",
