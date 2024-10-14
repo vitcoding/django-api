@@ -2,7 +2,6 @@ __pycache__/
 .vscode/
 .venv/
 .env
-#.env.example
 
 _temp/
 temp/

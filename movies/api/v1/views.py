@@ -1,15 +1,10 @@
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.core.paginator import Paginator
-from django.db import connection
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.views.generic.detail import BaseDetailView
 from django.views.generic.list import BaseListView
 
-from config.settings import logger
-from movies.models import (
-    Filmwork,
-)  # Genre,; GenreFilmwork,; Person,; PersonFilmwork,
+from movies.models import Filmwork
 
 
 class MoviesApiMixin:
@@ -38,14 +33,13 @@ class MoviesApiMixin:
         for key in person_roles:
             field = f"{key}s"
             role_fields[field] = ArrayAgg(
-                f"persons__full_name",
+                "persons__full_name",
                 filter=Q(personfilmwork__role=key),
                 distinct=True,
             )
 
         api_fields = list(api_fields_base)
         api_fields.extend(list(role_fields.keys()))
-        logger.debug("\napi_fields: \n%s\n", api_fields)
 
         aggregated_fields = films_genres.annotate(**role_fields).values(
             *api_fields
@@ -59,31 +53,11 @@ class MoviesApiMixin:
 class MoviesListApi(MoviesApiMixin, BaseListView):
     paginate_by = 50
 
-    # def validate_page(self, page, num_pages):
-    #     if isinstance(page, int):
-    #         if page < 1:
-    #             return 1
-    #         if page > num_pages:
-    #             return num_pages
-
-    #     return page
-
     def get_context_data(self, *, object_list=None, **kwargs):
         films_queryset = self.get_queryset()
         paginator, page, queryset, is_paginated = self.paginate_queryset(
             films_queryset, self.paginate_by
         )
-
-        logger.debug(
-            "\npaginator: \n%s\n\npage: \n%s\n\nqueryset: \n%s\npage.number: \n%s\n\n",
-            paginator,
-            paginator.page,
-            queryset,
-            page.number,
-        )
-
-        # current_page = page.number
-        # current_page = self.validate_page(page.number, paginator.num_pages)
 
         context = {
             "count": paginator.count,
@@ -95,23 +69,14 @@ class MoviesListApi(MoviesApiMixin, BaseListView):
             "results": list(queryset),
         }
 
-        logger.debug(
-            "\nconnection.queries: \n%s\n",
-            connection.queries,
-        )
-        logger.debug(
-            "\nlen(connection.queries): \n%s\n",
-            len(connection.queries),
-        )
         return context
 
 
 class MoviesDetailApi(MoviesApiMixin, BaseDetailView):
 
     def get_context_data(self, **kwargs):
-        logger.debug(
-            "\nkwargs: \n%s\n",
-            kwargs.values(),
-        )
-        movie = list(kwargs.values())[0]
+        try:
+            movie = kwargs["object"]
+        except KeyError:
+            raise Http404("Фильм не найден.")
         return movie

@@ -1,4 +1,3 @@
-import logging
 import os
 from pathlib import Path
 
@@ -14,23 +13,11 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 DEBUG = os.environ.get("DEBUG", False) == "True"
 
 # Логирование: config/components/logging.py
-# include(
-#     "components/logging.py",
-# )
-format_log = (
-    "#%(levelname)-8s [%(asctime)s] - %(filename)s:"
-    "%(lineno)d - %(name)s - %(message)s"
+include(
+    "components/logging.py",
 )
-logging.basicConfig(
-    level=logging.INFO,
-    format=format_log,
-)
-logger = logging.getLogger(__name__)
 
-
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
+INTERNAL_IPS = os.environ.get("DJANGO_INTERNAL_IPS").split(",")
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS").split(",")
 
@@ -44,9 +31,9 @@ include(
     "components/middlewares.py",
 )
 
-CORS_ORIGIN_WHITELIST = [
-    "http://localhost:8080",
-]
+CORS_ORIGIN_WHITELIST = os.environ.get("DJANGO_CORS_ORIGIN_WHITELIST").split(
+    ","
+)
 
 ROOT_URLCONF = "config.urls"
 
@@ -57,27 +44,22 @@ include(
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-
 # База данных: config/components/database.py
 include(
     "components/database.py",
 )
-
 
 # Валидация паролей: config/components/password_validation.py
 include(
     "components/password_validation.py",
 )
 
-
 # Интернационализация: config/components/internationalization.py
 include(
     "components/internationalization.py",
 )
 
-
 # Статические файлы (CSS, JavaScript, Images)
 STATIC_URL = "static/"
-
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
