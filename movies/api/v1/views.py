@@ -1,5 +1,6 @@
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db import connection, reset_queries
+from django.core.paginator import Paginator
+from django.db import connection
 from django.db.models import Q
 from django.http import JsonResponse
 from django.views.generic.list import BaseListView
@@ -13,6 +14,7 @@ from movies.models import (
 class MoviesListApi(BaseListView):
     model = Filmwork
     http_method_names = ["get"]
+    paginate_by = 50
 
     def get_queryset(self):
         api_fields_base = (
@@ -50,8 +52,42 @@ class MoviesListApi(BaseListView):
         )
         return aggregated_fields
 
+    # def validate_page(self, page, num_pages):
+    #     if isinstance(page, int):
+    #         if page < 1:
+    #             return 1
+    #         if page > num_pages:
+    #             return num_pages
+
+    #     return page
+
     def get_context_data(self, *, object_list=None, **kwargs):
-        context = {"results": list(self.get_queryset())}
+        films_queryset = self.get_queryset()
+        paginator, page, queryset, is_paginated = self.paginate_queryset(
+            films_queryset, self.paginate_by
+        )
+
+        logger.debug(
+            "\npaginator: \n%s\n\npage: \n%s\n\nqueryset: \n%s\npage.number: \n%s\n\n",
+            paginator,
+            paginator.page,
+            queryset,
+            page.number,
+        )
+
+        # current_page = page.number
+        # current_page = self.validate_page(page.number, paginator.num_pages)
+
+        context = {
+            "count": paginator.count,
+            "total_pages": paginator.num_pages,
+            "prev": (
+                page.previous_page_number() if page.has_previous() else None
+            ),
+            "next": (page.next_page_number() if page.has_next() else None),
+            "results": list(queryset),
+        }
+
         logger.debug(
             "\nconnection.queries: \n%s\n",
             connection.queries,
