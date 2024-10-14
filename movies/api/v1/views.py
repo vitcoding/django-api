@@ -3,6 +3,7 @@ from django.core.paginator import Paginator
 from django.db import connection
 from django.db.models import Q
 from django.http import JsonResponse
+from django.views.generic.detail import BaseDetailView
 from django.views.generic.list import BaseListView
 
 from config.settings import logger
@@ -11,10 +12,9 @@ from movies.models import (
 )  # Genre,; GenreFilmwork,; Person,; PersonFilmwork,
 
 
-class MoviesListApi(BaseListView):
+class MoviesApiMixin:
     model = Filmwork
     http_method_names = ["get"]
-    paginate_by = 50
 
     def get_queryset(self):
         api_fields_base = (
@@ -51,6 +51,13 @@ class MoviesListApi(BaseListView):
             *api_fields
         )
         return aggregated_fields
+
+    def render_to_response(self, context, **response_kwargs):
+        return JsonResponse(context)
+
+
+class MoviesListApi(MoviesApiMixin, BaseListView):
+    paginate_by = 50
 
     # def validate_page(self, page, num_pages):
     #     if isinstance(page, int):
@@ -98,5 +105,13 @@ class MoviesListApi(BaseListView):
         )
         return context
 
-    def render_to_response(self, context, **response_kwargs):
-        return JsonResponse(context)
+
+class MoviesDetailApi(MoviesApiMixin, BaseDetailView):
+
+    def get_context_data(self, **kwargs):
+        logger.debug(
+            "\nkwargs: \n%s\n",
+            kwargs.values(),
+        )
+        movie = list(kwargs.values())[0]
+        return movie
