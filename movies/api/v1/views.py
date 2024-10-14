@@ -1,4 +1,5 @@
 from django.contrib.postgres.aggregates import ArrayAgg
+from django.db import connection, reset_queries
 from django.db.models import Q
 from django.http import JsonResponse
 from django.views.generic.list import BaseListView
@@ -11,37 +12,10 @@ from movies.models import (
 
 class MoviesListApi(BaseListView):
     model = Filmwork
-    http_method_names = ["get"]  # Список методов, которые реализует обработчик
+    http_method_names = ["get"]
 
     def get_queryset(self):
-        all_films = Filmwork.objects.all()
-
-        films_genres = all_films.values("id").annotate(
-            genres=ArrayAgg("genres__name", distinct=True),
-        )
-        films_actors = films_genres.annotate(
-            actors=ArrayAgg(
-                "persons__full_name",
-                filter=Q(personfilmwork__role="actor"),
-                distinct=True,
-            ),
-        )
-        films_directors = films_actors.annotate(
-            directors=ArrayAgg(
-                "persons__full_name",
-                filter=Q(personfilmwork__role="director"),
-                distinct=True,
-            ),
-        )
-        films_writers = films_directors.annotate(
-            writers=ArrayAgg(
-                "persons__full_name",
-                filter=Q(personfilmwork__role="writer"),
-                distinct=True,
-            ),
-        )
-
-        films = films_writers.values(
+        api_fields_base = (
             "id",
             "title",
             "description",
@@ -49,18 +23,43 @@ class MoviesListApi(BaseListView):
             "rating",
             "type",
             "genres",
-            "actors",
-            "directors",
-            "writers",
         )
-        logger.debug("films[0]: \n%s\n", films[0])
 
-        return films
+        films = Filmwork.objects.prefetch_related("genres", "persons")
+
+        films_genres = films.values("id").annotate(
+            genres=ArrayAgg("genres__name", distinct=True)
+        )
+
+        person_roles = ("actor", "director", "writer")
+        role_fields = {}
+        for key in person_roles:
+            field = f"{key}s"
+            role_fields[field] = ArrayAgg(
+                f"persons__full_name",
+                filter=Q(personfilmwork__role=key),
+                distinct=True,
+            )
+
+        api_fields = list(api_fields_base)
+        api_fields.extend(list(role_fields.keys()))
+        logger.debug("\napi_fields: \n%s\n", api_fields)
+
+        aggregated_fields = films_genres.annotate(**role_fields).values(
+            *api_fields
+        )
+        return aggregated_fields
 
     def get_context_data(self, *, object_list=None, **kwargs):
-        context = {
-            "results": list(self.get_queryset()),
-        }
+        context = {"results": list(self.get_queryset())}
+        logger.debug(
+            "\nconnection.queries: \n%s\n",
+            connection.queries,
+        )
+        logger.debug(
+            "\nlen(connection.queries): \n%s\n",
+            len(connection.queries),
+        )
         return context
 
     def render_to_response(self, context, **response_kwargs):
